@@ -1,0 +1,80 @@
+#!/usr/bin/env coffee
+nc = require "ncurses"
+fs = require "fs"
+widgets = require "ncurses/lib/widgets"
+
+editor = new nc.Window
+
+nc.showCursor = true
+
+#widgets.InputBox "filename", {pos: "center"}, (input) -> 
+#	console.log input
+
+debugCount = 0
+row = 0
+col = 0
+lines = [[]]
+editor.on "inputChar", (char, code, isKey) ->
+	if code is 27
+		widgets.MessageBox "options", {
+				buttons: ["Command", "Open", "Save", "Save As", "Quit", "Search", "Cancel"]
+				pos: "center"
+				style: colors: button: {bg: "green", fg: "black"}	
+			}, (choice) ->	
+				switch choice
+					when "Quit" 
+						return editor.close()
+					when "Save"
+						fs.writeFileSync "test.txt", (line.join "" for line in lines).join "\n"
+					
+				editor.refresh()
+
+		return
+
+	if char is "E"
+		editor.cursor 5, 0
+		editor.clrtoeol()
+		editor.insstr ++debugCount + JSON.stringify lines 
+		editor.cursor row, col
+		return 
+
+	#LEFT
+	if code is 260
+		col--
+		editor.cursor row, col
+		return
+
+	#RIGHT
+	if code is 261 
+		col++
+		editor.cursor row, col
+		return
+
+	#UP	
+	if code is 259
+		row--
+		editor.cursor row, col
+		return
+
+	#DOWN
+	if code is 258
+		row++	
+		editor.cursor row, col 
+		return
+
+	if code is 127
+		if col is 0
+			if row > 0
+				row--
+				col = lines[row].length + 1 
+
+		editor.cursor row, --col
+		editor.delch()
+		lines[row][col..] = lines[row][col+1..lines[row].length - 1]
+	else if code is 10
+		editor.cursor ++row, col = 0
+		lines[row] = []
+	else
+		lines[row][col..] = [char].concat lines[row][col..]
+		editor.insstr row, col, char
+		editor.cursor row, ++col
