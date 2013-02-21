@@ -1,11 +1,11 @@
 {
 	"name": "mug",
 
-	"description": "a command line text editor written in and powered by coffeescript",
+	"description": "a command line text editor written in and powered by coffeescript which can use codemirror modes",
 
 	"version": "0.0.1",
 
-	"keywords": ["gherkin", "bdd", "parser"],
+	"keywords": ["editor", "coffee", codemirror"],
 
 	"maintainers": [{
 		"name": "Shaun Gilchrist",
