@@ -52,3 +52,9 @@ you can do js fiddle style rapid dev)
 paren/bracket matching 
 
 clear empty lines on backspace
+
+add ctrl+f and ctrl+b for quick page up/down
+
+show significant white space
+
+utilize code mirror for smart indent
