@@ -61,14 +61,18 @@ class Editor
 		T.quit()
 
 	_renderRow: (row) -> 
-		"#{_.pad (String row + 1), @gutterWidth, " "} #{@lines[row].join ""}"
+		T.bg(T.C.r).fg(T.C.w).out((_.pad (String row + 1), @gutterWidth, " ") + " ")
+			.bg(T.C.k).fg(T.C.g)
+			.eraseToEnd()
+			.out(@lines[row].join "")
+		this
 
 	drawRow: (screenRow, row) -> 
-		T.saveCursor()
-			.pos(1, screenRow)
-			.eraseLine()
-			.out(@_renderRow row)
-			.restoreCursor()
+		T.saveCursor().pos 1, screenRow
+			
+		@_renderRow row
+
+		T.restoreCursor()
 		
 		this
 
@@ -88,12 +92,13 @@ class Editor
 		if draw
 			trow = 1
 			for row in [@scrollStart..@scrollStart + T.height - 1] when @lines[row]
-				T.pos(0, trow)
-					.eraseLine()
-					.out(@_renderRow row)
+				T.pos 0, trow
+				
+				@_renderRow row
+
 				trow++
 
-		details = "(#{@col + 1}, #{@row + 1}) [#{@mode}]"
+		details = "(#{@col + 1}/#{@lines[@row].length}, #{@row + 1}/#{@lines.length}) [#{@mode}]"
 
 		T.pos(0, T.height)
 			.eraseLine()
@@ -285,6 +290,7 @@ class Editor
 
 						else
 							if char 
+								_d "CHAR", char, key 
 								@lines[@row][@col..] = [char].concat @lines[@row][@col..]
 								@drawRow @cursorRow, @row
 								@moveCol INC

@@ -58,3 +58,9 @@ add ctrl+f and ctrl+b for quick page up/down
 show significant white space
 
 utilize code mirror for smart indent
+
+history/undo
+
+$ and ctrl A , w for navigating in visual mode
+
+example json editing mode to show off power of plugins
