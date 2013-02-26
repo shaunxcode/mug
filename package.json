@@ -5,7 +5,7 @@
 
 	"version": "0.0.1",
 
-	"keywords": ["editor", "coffee", codemirror"],
+	"keywords": ["editor", "coffee", "codemirror"],
 
 	"maintainers": [{
 		"name": "Shaun Gilchrist",
@@ -31,9 +31,12 @@
 		"url": "http://www.github.com/shaunxcode/mug"
 	}],
 	"dependencies": {
-		"ncurses": "latest"
+		"underscore": "latest",
+		"underscore.string": "latest",
+		"node-term-ui": "https://github.com/shaunxcode/node-term-ui/tarball/master",
+		"coffee-script": "latest"
 	},
-	"main": "index",
+	"main": "Mug",
 	"bin": {
 		"mug": "./bin/mug"
 	}
