@@ -5,14 +5,57 @@ T = require "node-term-ui"
 _ = require "underscore"
 _.mixin require "underscore.string"
 
+StringStream = require "./modes/StringStream"
+
+#this will be abstracted to load code mirror modes and add the wrapper
+#automatically as well as keep a list of available modes and mime types
+csmode = (require "./modes/coffeescript").modes.coffeescript indentUnit: 2, mode: {}
+
 debugCounter = 0
-_d = (args...) -> args.map (msg) -> fs.appendFile "dbug.log", "#{debugCounter++} #{msg}\n"
+_d = (args...) -> 
+	true 
+	#args.map (msg) -> fs.appendFile "dbug.log", "#{debugCounter++} #{msg}\n"
 _j = (obj) -> JSON.stringify obj
 
 [INC, DEC] = [1, -1]
 MODE = insert: "INSERT", visual: "VISUAL"
 
 class Editor
+	theme:
+		background: "#141414"
+		foreground: "#f7f7f7"
+		selected: "#323232"
+		"gutters-background": "#222222"
+		lineNumbers: "#aaaaaa"
+
+		keyword: "#f9ee88"
+		atom: "#FFCC00"
+		number: "#CA7841"
+		def: "#8DA6CE"
+		variable: "#607392"
+		"variable-2": "#607392"
+		"variable-3": "#607392"
+		property: "#000000"
+		operator: "#CDA869"
+		comment: "#777777"
+		string: "#8F9D6A"
+		"string-2": "#BD6B18"
+		meta: "#f7f7f7"
+		error: "#ff0000"
+		qualifier: "#555555"
+		builtin: "#CDA869"
+		bracket: "#999977"
+		tag: "#117700"
+		attribute: "#D6BB6D"
+		header: "#FF64))"
+		quote: "#009900"
+		hr: "#999999"
+		link: "#0000cc"
+		invalidchar: "#ff0000"
+		matchingbracket: "#00ff00"
+		nonmatchingbracket: "#ff2222"
+		punctuation: "#CDA869"
+
 	constructor: ->
 		@commandHistory = []
 		@commandHistoryPos = 0
@@ -20,8 +63,13 @@ class Editor
 		@row = 0
 		@col = 0
 		
+
 		@mode = MODE.insert 
 		@lines = [[]]
+
+		#determine this from file extension/allow to set by command
+		@textMode = csmode 
+		@tabSize = 8
 
 		@calcGutter()
 
@@ -60,19 +108,71 @@ class Editor
 	quit: -> 
 		T.quit()
 
-	_renderRow: (row) -> 
+	clearStyle: (row) -> 
+		if @lines[row].style
+			delete @lines[row].style
+		this
+
+	setStyle: (row) -> 
+		styles = []
+		curStyle = null
+		curText = ""
+		state = @textMode.startState()
+		
+		stream = new StringStream @lines[row].join(""), @tabSize
+
+		if @lines[row].length is 0 and @textMode.blankLine?
+			@textMode.blankLine state 
+
+		while not stream.eol()
+			style = @textMode.token stream, state
+			substr = stream.current()
+			stream.start = stream.pos
+			if curStyle isnt style 
+				if curStyle then styles.push [curStyle, curText] 
+				curText = substr
+				curStyle = style
+			else
+				curText += substr
+
+		if curText.length
+			styles.push [curStyle, curText]
+
+		@lines[row].style = styles
+		_d _j styles 
+
+		this
+
+	_renderRow: (row) ->
+		if not @lines[row].style
+			@setStyle row
+
 		T.bg(T.C.r).fg(T.C.w).out((_.pad (String row + 1), @gutterWidth, " ") + " ")
 			.bg(T.C.k).fg(T.C.g)
 			.eraseToEnd()
-			.out(@lines[row].join "")
+
+		si = 0
+		words = @lines[row].join("").split " "
+		_d words
+		_d @lines[row].style 
+		
+		for word, i in words 
+			_d "SI #{si} #{word} #{@lines[row].style[si]?[1]}"
+			if word is @lines[row].style[si]?[1] and hex = @theme[@lines[row].style[si][0]]
+				_d "USE #{hex}"
+				T.fgHex hex
+				si++
+			T.out word
+			if i < words.length
+				T.out " "
 		this
 
 	drawRow: (screenRow, row) -> 
-		T.saveCursor().pos 1, screenRow
+		T.saveCursor().pos(1, screenRow).hideCursor()
 			
 		@_renderRow row
 
-		T.restoreCursor()
+		T.restoreCursor().showCursor()
 		
 		this
 
@@ -266,10 +366,12 @@ class Editor
 								@lines[@row][@col..] = @lines[@row + 1]
 								@lines[@row+1..] = @lines[@row+2..]
 
+								@clearStyle @row 
 								draw = true
 							else
 								@moveCol DEC
 								@lines[@row][@col..] = @lines[@row][@col+1..@lines[@row].length - 1]
+								@clearStyle @row 
 								@drawRow @cursorRow, @row 
 
 						when "enter"
@@ -279,6 +381,7 @@ class Editor
 								@lines[@row] = []
 							else
 								@lines[@row] = @lines[@row][0..@col - 1]
+								@clearStyle @row
 							
 							@lines[@row+1..] = [newLine].concat @lines[@row+1..]
 							
@@ -290,8 +393,8 @@ class Editor
 
 						else
 							if char 
-								_d "CHAR", char, key 
 								@lines[@row][@col..] = [char].concat @lines[@row][@col..]
+								@clearStyle @row 
 								@drawRow @cursorRow, @row
 								@moveCol INC
 			
